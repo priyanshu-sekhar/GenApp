@@ -1,19 +1,21 @@
-===========================================
-README: GENAPP AIRAVATA INTEGRATION
-===========================================
+**Update**
+-------------
+For using the updated appconfig and messaging services in qt, refer to the *develop* branch. <br/>
 
--------------------------------------
+README: GENAPP AIRAVATA INTEGRATION
+==========================
+
 Dependencies
--------------------------------------
+---------------------
 1.glib
 2.thrift
 3.boost (Recommended for developers)
 4.Airavata (to run it on server)- Follow https://docs.google.com/document/d/1xmGorQjlllJB9nxlCg0zHJu7UKibuzjYDI_zowm5Yng/edit 
--------------------------------------
+---------------------
 
-+++++++++++++++++++++++++++++++++
+
 Building from scratch
-+++++++++++++++++++++++++++++++++
+---------------------
 
 Follow the steps below to build, configure and run genapp interfaces from scratch. 
 
@@ -79,3 +81,4 @@ C++/Qt5
 8. Execute "make" to build and create the executable.
 9. Execute "cd .." to goto "psptest/output/qt5"
 10. Run executable ./psptest/psptest
+
