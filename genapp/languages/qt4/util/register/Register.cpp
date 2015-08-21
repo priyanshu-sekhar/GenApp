@@ -75,11 +75,6 @@ void Register::init()
     
 }
 
-/*typedef struct {
-        gchar *airavata_server;
-        gint airavata_port, airavata_timeout;
-} Settings;
-*/
 typedef struct {
         gchar *airavata_server, *app_catalog_server;
         gint airavata_port, app_catalog_port, airavata_timeout;
@@ -87,30 +82,14 @@ typedef struct {
 
 void Register::readConfigFile(char* cfgfile, string& airavata_server, int& airavata_port, int& airavata_timeout) {
 
-       /* airavata_server="'192.168.1.24'";
-        airavata_port= 8930;
-        airavata_timeout=100000;*/
         json config_json = json::parse_file(this->appConfig);
-        airavata_server = config_json["hostip"].as<std::string>();
-        airavata_port = config_json["hostport"].as<int>();
-        airavata_timeout = config_json["hosttimeout"].as<int>();
-
-       /* Settings *conf;
-        GKeyFile *keyfile;
-        GKeyFileFlags flags;
-        GError *error = NULL;        
-        keyfile = g_key_file_new ();                        
-        if (!g_key_file_load_from_file (keyfile, cfgfile, flags, &error)) {
-                g_error (error->message);
-        } else {                
-                conf = g_slice_new (Settings);
-                conf->airavata_server    = g_key_file_get_string(keyfile, "airavata", "AIRAVATA_SERVER", NULL);
-                airavata_server = conf->airavata_server;
-                conf->airavata_port      = g_key_file_get_integer(keyfile, "airavata", "AIRAVATA_PORT", NULL);
-                airavata_port = conf->airavata_port;
-                conf->airavata_timeout  = g_key_file_get_integer(keyfile, "airavata", "AIRAVATA_TIMEOUT", NULL);
-                airavata_timeout = conf->airavata_timeout;                
-        }              */ 
+        json resources_json = config_json["resources"];
+        json airavata_json = resources_json["airavata"];
+        json properties_json = airavata_json["properties"];
+    
+        airavata_server = properties_json["server"].as<std::string>();
+        airavata_port = properties_json["port"].as<int>();
+        airavata_timeout = properties_json["timeout"].as<int>();
 
 }
 
@@ -170,30 +149,11 @@ void Register::registerLocalhost()
         ComputeResourceDescription host;
         host.__set_hostName(hostname);
         host.__set_resourceDescription(hostDesc);
-        /*host.__set_ipAddresses(ipAddresses);
-        host.__set_hostAliases(hostAliases);*/
-        // host.__set_computeResourceId("localhost_ad82d657-d0c2-4c91-87fc-7bee3cbd8284");
         
-        // int airavata_port, airavata_timeout;
-        // string airavata_server="";
-        // char* cfgfile = "./airavata-client-properties.ini";;
-        // readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);              
-        // airavata_server.erase(0,1);
-        // airavata_server.erase(airavata_server.length()-1,1);    
-        // boost::shared_ptr<TSocket> socket(new TSocket(airavata_server, airavata_port));
-        // socket->setSendTimeout(airavata_timeout);
-        // boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));    
-        // boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
-        // airavataClient = new AiravataClient(protocol);
-        // transport->open();
         airavataClient->registerComputeResource(this->localhostId,host);
-        // transport->close();
-
         cout << "localhostId:" << this->localhostId << endl;
         ResourceJobManager resourceJobManager;
         map<JobManagerCommand::type, std::string> commandmap;
-        // JobManagerCommand::type jobManagerCommandType = JobManagerCommandType::SUBMISSION;
-        // commandmap[JobManagerCommand::SUBMISSION]="addLocalSubmissionDetails";
         resourceJobManager.__set_resourceJobManagerType(ResourceJobManagerType::FORK);
         resourceJobManager.__set_pushMonitoringEndpoint("");
         resourceJobManager.__set_jobManagerBinPath("");
@@ -205,9 +165,7 @@ void Register::registerLocalhost()
 
         string submission = "";
         
-        // transport->open();
         airavataClient->addLocalSubmissionDetails(submission,this->localhostId,1,localSubmission);
-        // transport->close();
 
         cout << "submission:" << submission << endl;
         cout << "Localhost Resource Id is " << this->localhostId << endl;     

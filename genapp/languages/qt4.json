@@ -73,6 +73,31 @@
                     "frequency"  : "once",
                     "output"     : "__application__/Register.h",
                     "inputs"     : [ { "util/register/Register.h"   : "once" } ]
+                   },
+                   {
+                    "frequency"  : "once",
+                    "output"     : "__application__/util/messaging/README.md",
+                    "inputs"     : [ { "util/messaging/README.md"   : "once" } ]
+                   },
+                   {
+                    "frequency"  : "once",
+                    "output"     : "__application__/util/messaging/msg-udpserver/msg-udpserver.h",
+                    "inputs"     : [ { "util/messaging/msg-udpserver/msg-udpserver.h"   : "once" } ]
+                   },
+                   {
+                    "frequency"  : "once",
+                    "output"     : "__application__/util/messaging/msg-udpserver/msg-udpserver.cpp",
+                    "inputs"     : [ { "util/messaging/msg-udpserver/msg-udpserver.cpp"   : "once" } ]
+                   },
+                   {
+                    "frequency"  : "once",
+                    "output"     : "__application__/util/messaging/test-zmq/zmqserver.h",
+                    "inputs"     : [ { "util/messaging/test-zmq/zmqserver.h"   : "once" } ]
+                   },
+                   {
+                    "frequency"  : "once",
+                    "output"     : "__application__/util/messaging/test-zmq/zmqserver.cpp",
+                    "inputs"     : [ { "util/messaging/test-zmq/zmqserver.cpp"   : "once" } ]
                    }
                   ]
 }

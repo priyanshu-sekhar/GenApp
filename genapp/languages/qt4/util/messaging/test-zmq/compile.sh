@@ -1,0 +1,1 @@
+g++ -Wall zmqserver.cpp -L/usr/local/lib -lzmq -o zmqserver && g++ -Wall zmqclient.cpp -L/usr/local/lib -lzmq -o zmqclient
