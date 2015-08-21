@@ -1,84 +1,81 @@
 **Update**
 -------------
-For using the updated appconfig and messaging services in qt, refer to the *develop* branch. <br/>
+For using the updated appconfig and messaging services in qt, refer to the [develop](https://github.com/priyanshu-sekhar/GenApp/tree/develop) branch. <br/>
 
-README: GENAPP AIRAVATA INTEGRATION
+##GENAPP AIRAVATA INTEGRATION
 ==========================
 
 Dependencies
 ---------------------
-1.glib
-2.thrift
-3.boost (Recommended for developers)
-4.Airavata (to run it on server)- Follow https://docs.google.com/document/d/1xmGorQjlllJB9nxlCg0zHJu7UKibuzjYDI_zowm5Yng/edit 
----------------------
-
+* glib <br/>
+* thrift <br/>
+* boost (Recommended for developers) <br/>
+* Airavata (to run it on server) - [Install Airavata](https://docs.google.com/document/d/1xmGorQjlllJB9nxlCg0zHJu7UKibuzjYDI_zowm5Yng/edit) <br/>
 
 Building from scratch
 ---------------------
+Follow the steps below to build, configure and run genapp interfaces from scratch. <br/>
 
-Follow the steps below to build, configure and run genapp interfaces from scratch. 
+1. Set up developement environment as listed on [GenApp Wiki](http://gw105.iu.xsede.org:8000/genapp/wiki/setupdev) <br/>
+2. Set GENAPP environment vairable to the location of genapp folder and add $GENAPP/bin to your PATH <br/>
+3. Change to *psptest* <br/>
+4. Execute __genapp.pl__ <br/>
 
-1. Set up developement environment as listed on GenApp Wiki: http://gw105.iu.xsede.org:8000/genapp/wiki/setupdev
-2. Set GENAPP environment vairable to the location of genapp folder and add $GENAPP/bin to your PATH
-3. Change to psptest/
-4. Execute "genapp.pl"
+Generated Code will be present in psptest/output <br/>
 
-Generated Code will be present in psptest/output
-
-Follow the instructions below for running the specific language interfaces.
-
--------------------------------------
 Steps to Install Qt5(for linux/X11)
 -------------------------------------
-1. Download the latest Qt5 version from http://www.qt.io/download/ and run the application (Don't launch the Qt5 creator)
-2. Download the latest version of Qwt (6.1+) from http://qwt.sourceforge.net/qwtinstall.html and follow the steps for installation
-3. Open terminal(from which you wish to run Genapp-Qt5) 
-4. Execute the following command:
+1. Download the latest Qt5 version from http://www.qt.io/download/ and run the application (Don't launch the Qt5 creator) <br/>
+2. Download the latest version of Qwt (6.1+) from http://qwt.sourceforge.net/qwtinstall.html and follow the steps for installation <br/>
+3. Open terminal(from which you wish to run Genapp-Qt5) <br/>
+4. Execute the following command: <br/>
+   ```
    PATH=/path/to/Qt5/gcc_64/bin:$PATH && export PATH 
    (Assuming qmake lies inside /path/to/Qt5/gcc_64/bin, or specify path to qmake)
-   ********check**********
-   "qmake -v" should display the installed version of Qt5
-   ***********************
-5. Execute: qmake -set QMAKEFEATURES /usr/local/qwt-6.1.2/features/  
-   (Replace qwt-6.1.2 with your installed version and change it's path if installed in a different directory)
+   ```
+   ######check
+   "qmake -v" should display the installed version of Qt5 <br/>
 
-Tip: You can make the PATH settings permanent by editing in the ".bashrc" or equivalent file.
-You are now ready to proceed with running the Qt5 application :)
-For more info, visit the official documentation- http://doc.qt.io/qt-5/linux-deployment.html
+5. Execute: qmake -set QMAKEFEATURES /usr/local/qwt-6.1.2/features/  <br/>
+   (Replace qwt-6.1.2 with your installed version and change it's path if installed in a different directory) <br/>
+
+Tip: You can make the PATH settings permanent by editing in the ".bashrc" or equivalent file. <br/>
+You are now ready to proceed with running the Qt5 application :) <br/>
+For more info, visit the official [qt5](http://doc.qt.io/qt-5/linux-deployment.html) documentation <br/>
 -------------------------------------
 
-+++++++++++++++++++++++++++++++++++++
 C++/Qt4
-+++++++++++++++++++++++++++++++++++++
-1. Change to "psptest/output/qt4/psptest"
-2. Execute "qmake-qt4 -project"
-3. Edit "psptest.pro" to add the following lines:
-	INCLUDEPATH += /usr/include/qwt-qt4 ../lib/
+-----------------
+1. Change to "psptest/output/qt4/psptest" <br/>
+2. Execute "qmake-qt4 -project" <br/>
+3. Edit "psptest.pro" to add the following lines: <br/>
+        ```
+	INCLUDEPATH += /usr/include/qwt-qt4 ../lib/ <br/>
 	LIBS += `pkg-config --libs glib-2.0` -L/usr/local/lib -lthrift -lqwt-qt4 
 	QMAKE_CXXFLAGS += -w -Wall -std=c++11 -Wno-write-strings -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H  `pkg-config --cflags glib-2.0`
-4. Start your local airavata server and make sure lines 55-56 of airavata.cpp have the correct host/port 
-5. Execute "qmake-qt4"
-6. Execute "make"
-7. Change to "genapp-output/psptest/output/qt4" directory
-8. Run executable ./psptest/psptest
+	```
+4. Start your local airavata server and make sure lines 55-56 of airavata.cpp have the correct host/port <br/>
+5. Execute *qmake-qt4* <br/>
+6. Execute *make* <br/>
+7. Change to "genapp-output/psptest/output/qt4" directory <br/>
+8. Run executable ./psptest/psptest <br/>
 
-
-+++++++++++++++++++++++++++++++++++++
 C++/Qt5
-+++++++++++++++++++++++++++++++++++++
-1. Complete the steps specified in "Steps to Install Qt5(for linux/X11)"
-2. Go to "psptest/output/qt5/psptest"
-3. Perform "make clean" if built previously, else skip this.
-4. Execute "qmake -project"
-5. Edit "psptest.pro" to add the following lines:
+---------------
+1. Complete the steps specified in "Steps to Install Qt5(for linux/X11)" <br/>
+2. Go to "psptest/output/qt5/psptest" <br/>
+3. Perform "make clean" if built previously, else skip this. <br/>
+4. Execute "qmake -project" <br/>
+5. Edit "psptest.pro" to add the following lines: <br/>
+   ```
    CONFIG += qwt
    INCLUDEPATH += ../lib/
    LIBS += `pkg-config --libs glib-2.0` -lthrift 
    QMAKE_CXXFLAGS += -w -Wall -std=c++11 -Wno-write-strings -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H  `pkg-config --cflags glib-2.0` 
-6. Start your local airavata server and make sure lines 55-56 of airavata.cpp have the correct host/port 
-7. Execute "qmake -config release" to statically link the Qt libraries
-8. Execute "make" to build and create the executable.
-9. Execute "cd .." to goto "psptest/output/qt5"
-10. Run executable ./psptest/psptest
+   ```
+6. Start your local airavata server and make sure lines 55-56 of airavata.cpp have the correct host/port <br/>
+7. Execute "qmake -config release" to statically link the Qt libraries <br/>
+8. Execute "make" to build and create the executable. <br/>
+9. Execute "cd .." to goto "psptest/output/qt5" <br/>
+10. Run executable ./psptest/psptest <br/>
 
