@@ -167,7 +167,7 @@ void Register::registerGatewayProfile()
     try
     {
         DataMovementProtocol::type dataMovementProtocol;
-        string scratchlocation = this->moduleDir + "/../tmp/qt4"; 
+        string scratchlocation = this->moduleDir + "/../tmp/qt5"; 
         
         char* cLocation = new char[scratchlocation.length()+ 1];
         strcpy(cLocation,scratchlocation.c_str());
@@ -175,7 +175,7 @@ void Register::registerGatewayProfile()
         struct stat info;
         int err = stat(cLocation, &info);
         if(err!=-1 && S_ISDIR(info.st_mode))
-            scratchlocation = this->moduleDir + "/../tmp/qt4";
+            scratchlocation = this->moduleDir + "/../tmp/qt5";
         else{
             //scratchlocation = this->moduleDir + "/..";
             cout << "Output directory doesn't exist..check \"docroot\" in directives.json" << endl;
