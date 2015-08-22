@@ -34,27 +34,15 @@ void Register::init()
     this->moduleId="";
     this->localhostId="";
     
-    //string directivesHome = getenv("DIRECTIVES_HOME");
     string directivesHome = get_current_dir_name();
     directivesHome += "/../..";
     cout << "directivesHome: " << directivesHome << endl;
 
-    this->moduleDir = directivesHome;
-    if(directivesHome.empty())
-    {
-        moduleDir = "/bin";
-    }
-    else
-    {
-        this->directivesFile = directivesHome + "/directives.json";
-        this->modulesFile = directivesHome + "/menu.json";
-        this->appConfig = directivesHome + "/appconfig.json";
-    }
-    cout << "Directives directory: "+this->directivesFile<< endl;
-    //directives
-       json directives_json = json::parse_file(this->directivesFile);
-       json executable_path = directives_json["executable_path"];
-       this->moduleDir = executable_path["qt4"].as<std::string>();
+   
+    this->moduleDir = directivesHome + "/bin";
+    this->modulesFile = directivesHome + "/menu.json";
+    this->appConfig = directivesHome + "/appconfig.json";
+
 
     //modules
     
@@ -75,11 +63,6 @@ void Register::init()
     
 }
 
-/*typedef struct {
-        gchar *airavata_server;
-        gint airavata_port, airavata_timeout;
-} Settings;
-*/
 typedef struct {
         gchar *airavata_server, *app_catalog_server;
         gint airavata_port, app_catalog_port, airavata_timeout;
@@ -87,30 +70,14 @@ typedef struct {
 
 void Register::readConfigFile(char* cfgfile, string& airavata_server, int& airavata_port, int& airavata_timeout) {
 
-       /* airavata_server="'192.168.1.24'";
-        airavata_port= 8930;
-        airavata_timeout=100000;*/
         json config_json = json::parse_file(this->appConfig);
-        airavata_server = config_json["hostip"].as<std::string>();
-        airavata_port = config_json["hostport"].as<int>();
-        airavata_timeout = config_json["hosttimeout"].as<int>();
-
-       /* Settings *conf;
-        GKeyFile *keyfile;
-        GKeyFileFlags flags;
-        GError *error = NULL;        
-        keyfile = g_key_file_new ();                        
-        if (!g_key_file_load_from_file (keyfile, cfgfile, flags, &error)) {
-                g_error (error->message);
-        } else {                
-                conf = g_slice_new (Settings);
-                conf->airavata_server    = g_key_file_get_string(keyfile, "airavata", "AIRAVATA_SERVER", NULL);
-                airavata_server = conf->airavata_server;
-                conf->airavata_port      = g_key_file_get_integer(keyfile, "airavata", "AIRAVATA_PORT", NULL);
-                airavata_port = conf->airavata_port;
-                conf->airavata_timeout  = g_key_file_get_integer(keyfile, "airavata", "AIRAVATA_TIMEOUT", NULL);
-                airavata_timeout = conf->airavata_timeout;                
-        }              */ 
+        json resources_json = config_json["resources"];
+        json airavata_json = resources_json["airavata"];
+        json properties_json = airavata_json["properties"];
+    
+        airavata_server = properties_json["server"].as<std::string>();
+        airavata_port = properties_json["port"].as<int>();
+        airavata_timeout = properties_json["timeout"].as<int>();
 
 }
 
@@ -121,8 +88,6 @@ void Register::registerAll()
         string airavata_server="";
         char* cfgfile = "./airavata-client-properties.ini";
         readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);  
-        airavata_server.erase(0,1);
-        airavata_server.erase(airavata_server.length()-1,1);    
         cout << "server-" << airavata_server << endl;            
         boost::shared_ptr<TSocket> socket(new TSocket(airavata_server, airavata_port));
         socket->setSendTimeout(airavata_timeout);
@@ -170,30 +135,11 @@ void Register::registerLocalhost()
         ComputeResourceDescription host;
         host.__set_hostName(hostname);
         host.__set_resourceDescription(hostDesc);
-        /*host.__set_ipAddresses(ipAddresses);
-        host.__set_hostAliases(hostAliases);*/
-        // host.__set_computeResourceId("localhost_ad82d657-d0c2-4c91-87fc-7bee3cbd8284");
         
-        // int airavata_port, airavata_timeout;
-        // string airavata_server="";
-        // char* cfgfile = "./airavata-client-properties.ini";;
-        // readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);              
-        // airavata_server.erase(0,1);
-        // airavata_server.erase(airavata_server.length()-1,1);    
-        // boost::shared_ptr<TSocket> socket(new TSocket(airavata_server, airavata_port));
-        // socket->setSendTimeout(airavata_timeout);
-        // boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));    
-        // boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
-        // airavataClient = new AiravataClient(protocol);
-        // transport->open();
         airavataClient->registerComputeResource(this->localhostId,host);
-        // transport->close();
-
         cout << "localhostId:" << this->localhostId << endl;
         ResourceJobManager resourceJobManager;
         map<JobManagerCommand::type, std::string> commandmap;
-        // JobManagerCommand::type jobManagerCommandType = JobManagerCommandType::SUBMISSION;
-        // commandmap[JobManagerCommand::SUBMISSION]="addLocalSubmissionDetails";
         resourceJobManager.__set_resourceJobManagerType(ResourceJobManagerType::FORK);
         resourceJobManager.__set_pushMonitoringEndpoint("");
         resourceJobManager.__set_jobManagerBinPath("");
@@ -205,9 +151,7 @@ void Register::registerLocalhost()
 
         string submission = "";
         
-        // transport->open();
         airavataClient->addLocalSubmissionDetails(submission,this->localhostId,1,localSubmission);
-        // transport->close();
 
         cout << "submission:" << submission << endl;
         cout << "Localhost Resource Id is " << this->localhostId << endl;     
@@ -223,7 +167,7 @@ void Register::registerGatewayProfile()
     try
     {
         DataMovementProtocol::type dataMovementProtocol;
-        string scratchlocation = this->moduleDir + "/../tmp/qt5"; 
+        string scratchlocation = this->moduleDir + "/../tmp/qt4"; 
         
         char* cLocation = new char[scratchlocation.length()+ 1];
         strcpy(cLocation,scratchlocation.c_str());
@@ -231,10 +175,12 @@ void Register::registerGatewayProfile()
         struct stat info;
         int err = stat(cLocation, &info);
         if(err!=-1 && S_ISDIR(info.st_mode))
-            scratchlocation = this->moduleDir + "/../tmp/qt5";
-        else
-            scratchlocation = this->moduleDir + "/..";
-    
+            scratchlocation = this->moduleDir + "/../tmp/qt4";
+        else{
+            //scratchlocation = this->moduleDir + "/..";
+            cout << "Output directory doesn't exist..check \"docroot\" in directives.json" << endl;
+            exit(1);
+        }
         JobSubmissionProtocol::type jobSubmissionProtocol;
         string preferredBatchQueue;
         bool overridebyAiravata = false;
@@ -448,52 +394,24 @@ Register* Register::getInstance()
 
 string gatewayId;
 
-void readConfigFile(char* cfgfile, string& airavata_server, int& airavata_port, int& airavata_timeout) {
-
-    airavata_server="'localhost'";
-    airavata_port = 8930;
-    airavata_timeout = 5000;                
-
-}
-
-AiravataClient createAiravataClient()
-{
-    int airavata_port, airavata_timeout;
-    string airavata_server;
-    char* cfgfile;
-    cfgfile = "./airavata-client-properties.ini";
-    readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);  
-    airavata_server.erase(0,1);
-    airavata_server.erase(airavata_server.length()-1,1);            
-    boost::shared_ptr<TSocket> socket(new TSocket(airavata_server, airavata_port));
-    socket->setSendTimeout(airavata_timeout);
-    boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));    
-    boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
-    AiravataClient airavataClient(protocol);
-    return airavataClient;
-}
-
 string createProject(char* owner, char* projectName)
 { 
     int airavata_port, airavata_timeout;
     string airavata_server;
     char* cfgfile;
     cfgfile = "./airavata-client-properties.ini";
-    readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);  
-    airavata_server.erase(0,1);
-    airavata_server.erase(airavata_server.length()-1,1);            
+    Register* register_= Register::getInstance();
+    register_->readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);  
     boost::shared_ptr<TSocket> socket(new TSocket(airavata_server, airavata_port));
     socket->setSendTimeout(airavata_timeout);
     boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));    
     boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
     AiravataClient airavataClient(protocol);
     transport->open();
-    // AiravataClient airavataClient = createAiravataClient();
     apache::airavata::model::workspace::Project project;                
     project.owner=owner;
     project.name=projectName;
     string _return;
-    Register* register_= Register::getInstance();
     gatewayId = register_->getGatewayId();
     cout << "Gateway Id:" << gatewayId << endl;
     airavataClient.createProject(_return,gatewayId,project);                
@@ -507,17 +425,14 @@ string createExperiment(char* usrName, char* expName, char* projId, char* execId
     string airavata_server;
     char* cfgfile;
     cfgfile = "./airavata-client-properties.ini";
-    readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);  
-    airavata_server.erase(0,1);
-    airavata_server.erase(airavata_server.length()-1,1);            
+    Register* register_= Register::getInstance();   
+    register_->readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);  
     boost::shared_ptr<TSocket> socket(new TSocket(airavata_server, airavata_port));
     socket->setSendTimeout(airavata_timeout);
     boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));    
     boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
     AiravataClient airavataClient(protocol);
     transport->open();
-    // AiravataClient airavataClient = createAiravataClient(); 
-    Register* register_= Register::getInstance();   
     ComputationalResourceScheduling cmRST;
     cmRST.__set_resourceHostId(register_->getComputeResourceId());
     cmRST.__set_computationalProjectAccount(usrName);
@@ -581,16 +496,14 @@ void launchExperiment(char* expId)
             string airavata_server;
             char* cfgfile;
             cfgfile = "./airavata-client-properties.ini";
-            readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);  
-            airavata_server.erase(0,1);
-            airavata_server.erase(airavata_server.length()-1,1);            
+            Register* register_= Register::getInstance();   
+            register_->readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);  
             boost::shared_ptr<TSocket> socket(new TSocket(airavata_server, airavata_port));
             socket->setSendTimeout(airavata_timeout);
             boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));    
             boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
             AiravataClient airavataClient(protocol);
             transport->open();              
-            // AiravataClient airavataClient = createAiravataClient();
             string tokenId = "-0bbb-403b-a88a-42b6dbe198e9";
             airavataClient.launchExperiment(expId, "airavataToken");
             qDebug() << "launched client experiment";
@@ -621,16 +534,14 @@ int getExperimentStatus(char* expId)
     string airavata_server;
     char* cfgfile;
     cfgfile = "./airavata-client-properties.ini";
-    readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);  
-    airavata_server.erase(0,1);
-    airavata_server.erase(airavata_server.length()-1,1);            
+    Register* register_= Register::getInstance();   
+    register_->readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);  
     boost::shared_ptr<TSocket> socket(new TSocket(airavata_server, airavata_port));
     socket->setSendTimeout(airavata_timeout);
     boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));    
     boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
     AiravataClient airavataClient(protocol);
     transport->open();          
-    // AiravataClient airavataClient = createAiravataClient();
     ExperimentStatus _return;       
     airavataClient.getExperimentStatus(_return, expId);
     transport->close();
@@ -644,16 +555,14 @@ string getExperimentOutput(char* expId)
     string airavata_server;
     char* cfgfile;
     cfgfile = "./airavata-client-properties.ini";
-    readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);  
-    airavata_server.erase(0,1);
-    airavata_server.erase(airavata_server.length()-1,1);            
+    Register* register_= Register::getInstance();   
+    register_->readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);  
     boost::shared_ptr<TSocket> socket(new TSocket(airavata_server, airavata_port));
     socket->setSendTimeout(airavata_timeout);
     boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));    
     boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
     AiravataClient airavataClient(protocol);
     transport->open();          
-    // AiravataClient airavataClient = createAiravataClient();
     std::vector<OutputDataObjectType> _return;
     string texpId(expId);
     airavataClient.getExperimentOutputs(_return, texpId);
@@ -661,4 +570,3 @@ string getExperimentOutput(char* expId)
     return _return[0].value;
                 
 }
-
