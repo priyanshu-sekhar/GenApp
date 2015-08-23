@@ -78,6 +78,11 @@
                     "frequency"  : "once",
                     "output"     : "__application__/__application__.qrc",
                     "inputs"     : [ { "util/resource/base.qrc"   : "once" } ]
+                   },
+                   {
+                    "frequency"  : "once",
+                    "output"     : "etc/menu.json",
+                    "inputs"     : [ { "__basedir__/menu.json"   : "once" } ]
                    }
                   ]
 }

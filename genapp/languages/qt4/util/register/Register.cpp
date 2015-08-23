@@ -25,7 +25,10 @@ Register* Register::register_ = NULL;
 bool Register::instanceFlag = false;
 
 
-Register::Register(){}
+Register::Register()
+{
+    init();
+}
 Register::~Register(){}
 
 void Register::init()
@@ -35,17 +38,46 @@ void Register::init()
     this->localhostId="";
     
     string directivesHome = get_current_dir_name();
+    this->modulesFile = directivesHome + "/etc/menu.json";
+
+    
+
+
+    //remove comments from json file
+    QFile read_menu(QString::fromStdString(this->modulesFile));
+    QFile write_menu(QString::fromStdString(directivesHome + "/etc/menu_new.json"));
+
+    write_menu.open(QIODevice::WriteOnly | QIODevice::Text);
+    read_menu.open(QIODevice::ReadOnly | QIODevice::Text);
+
+    QTextStream out(&write_menu);
+    QTextStream in(&read_menu);
+        while(!in.atEnd()) {
+            QString line = in.readLine();
+            string str = line.toStdString();
+            cout << str << endl;
+            if (str.find("#") != string::npos) {
+                str = str.substr(0, str.find("#"));
+               
+            }
+             out << QString::fromStdString(str) << endl;
+        }
+  
+
+    read_menu.close();
+    write_menu.close();
+    read_menu.remove();
+
+    //rename the newly created json file
+    string dir_name = directivesHome + "/etc";
+    QDir dir(QString::fromStdString(dir_name));
+    dir.rename("menu_new.json", "menu.json");
+
+    
     directivesHome += "/../..";
     cout << "directivesHome: " << directivesHome << endl;
-
-   
     this->moduleDir = directivesHome + "/bin";
-    this->modulesFile = directivesHome + "/menu.json";
     this->appConfig = directivesHome + "/appconfig.json";
-
-
-    //modules
-    
     json modules = json::parse_file(this->modulesFile);
     json module_menus = modules["menu"].as<json::array>();
     for(size_t i=0;i<module_menus.size();i++)
@@ -344,7 +376,7 @@ void Register::registerMain(Register* registerGenapp)
 {
     try
     {
-        registerGenapp->init();
+        //registerGenapp->init();
         registerGenapp->registerAll();
     }
     catch(AiravataClientException& e1)

@@ -84,7 +84,6 @@ my $error;
 my $warn;
 my $notice;
 my $created;
-
 my $ref_directives = {};
 my $ref_menu       = {};
 #my $ref_config     = {};
@@ -92,6 +91,9 @@ my $rplc           = {};
 
 # $rplc{ "directives" } = start_json( $directives, $ref_directives );
 $rplc_directives = start_json( $directives, $ref_directives );
+
+my $path = `pwd`;
+chomp $path;
 
 while ( my ( $k, $v ) = each $rplc_directives )
 {
@@ -127,6 +129,7 @@ foreach my $l ( keys %langs )
         my $inputs  = $$use{ "inputs" };
         my $minify  = $$use{ "minify" };
         my $closure = $$use{ "closure" };
+        my $doexec  = $$use{ "execute" } && $$use{ "execute" } eq 'true';
         if ( $minify ) {
             my $mok = 0;
             if ( $minify eq "minify" )
@@ -156,6 +159,9 @@ foreach my $l ( keys %langs )
             }
         }
 
+        if ( $doexec ) {
+            print "output will be executed\n";
+        }
         if ( $setexec ) {
             print "output will be set executable\n";
         }
@@ -227,7 +233,7 @@ foreach my $l ( keys %langs )
             $rplc_mod = start_json( $mod_json, $ref_mod );
         }
 
-        if ( $freq eq 'menu:id' )
+        if ( $freq =~ /^(menu:id|once)$/ )
         {
             $rplc_menu = start_json( $menu, $ref_menu );
             my $mod  = $$rplc_menu{ 'menu:modules:id' };
@@ -354,6 +360,12 @@ foreach my $l ( keys %langs )
                     }
 
                     my $f = "$gap/languages/$l/$use_input";
+                    if ( $use_input =~ /^__basedir__\// ) {
+                        my $i = $use_input;
+                        $i =~ s/^__basedir__\///;
+                        $f = "$path/$i";
+                        print "base path override $use_input resulted in $f\n";
+                    }
                     if ( !-e $f )
                     {
                         $error .= "language $l: assembly step " . ( $i + 1 ) . ": missing input file $f\n";
@@ -797,6 +809,13 @@ foreach my $l ( keys %langs )
                 print "mv $fn $fd\n";
                 print `mv $fn $fd\n`;
             }
+
+            if ( $doexec ) {
+                my $cmd = "bash $fo";
+                print "executing: $cmd\n";
+                print `$cmd`;
+            }
+
             if ( $freq eq 'config:modules:id' ||
                  $freq eq 'configbase:modules:id' ) 
             {
@@ -834,6 +853,7 @@ foreach my $l ( keys %langs )
             }
         }
     }
+    # run any scripts in output
 } # end for language
 
 print '-'x60 . "\nCreated:\n$created" . '-'x60 . "\n" if $created;

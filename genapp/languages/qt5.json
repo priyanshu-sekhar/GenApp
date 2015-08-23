@@ -73,6 +73,11 @@
                     "frequency"  : "once",
                     "output"     : "__application__/Register.h",
                     "inputs"     : [ { "util/register/Register.h"   : "once" } ]
+                   },
+                   {
+                    "frequency"  : "once",
+                    "output"     : "etc/menu.json",
+                    "inputs"     : [ { "__basedir__/menu.json"   : "once" } ]
                    }
                   ]
 }

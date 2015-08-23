@@ -1,11 +1,12 @@
 #include "Register.h"
+#include "../lib/jsoncons/json.hpp"
 #include <map>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <thrift/transport/TSocket.h>
-#include <thrift/TApplicationException.h>
 
+using jsoncons::json;
+using jsoncons::output_format;
 using std::string;
 
 const string Register::THRIFT_SERVER_HOST = "127.0.0.1" ;
@@ -24,7 +25,10 @@ Register* Register::register_ = NULL;
 bool Register::instanceFlag = false;
 
 
-Register::Register(){}
+Register::Register()
+{
+    init();
+}
 Register::~Register(){}
 
 void Register::init()
@@ -33,174 +37,120 @@ void Register::init()
     this->moduleId="";
     this->localhostId="";
     
-//    QDirIterator it(":/scripts",QDirIterator::Subdirectories);
-//    while (it.hasNext()) {
-//        qDebug() << it.next();
-//        module new_module;
-//        new_module.id = it.next().toStdString();
-//        new_module.name = it.next().toStdString();
-//        genapp_mod[new_module.name] = new_module;
-//        genapp_modules.push_back(new_module);
-//    }
-    //string directivesHome = getenv("DIRECTIVES_HOME");
-//    string directivesHome = "/home/priyanshu-sekhar/gsoc/new_airavata/new_genapp/psptest";
-    //    directivesHome += "/../..";
-    //    QString qDirectivesHome = QString::fromStdString(directivesHome);
-    //    qDebug() << "directivesHome: " << qDirectivesHome;
+    string directivesHome = get_current_dir_name();
+    this->modulesFile = directivesHome + "/etc/menu.json";
 
-//    this->moduleDir = directivesHome;
-    //    if(directivesHome.empty())
-    //    {
-    //        moduleDir = "/bin";
-    //    }
-    //    else
-    //    {
-    this->directivesFile = ":/jsons/directives.json";
-    this->modulesFile = ":/jsons/menu.json";
-    this->appConfig = ":/jsons/appconfig.json";
+    
 
-    //    }
-    //    cout << "Directives directory: "+this->directivesFile << endl;
-    //    //directives
-    QString val;
-    QFile file;
-    file.setFileName(":/jsons/directives.json");
-    file.open(QIODevice::ReadOnly | QIODevice::Text);
-    val = file.readAll();
-    file.close();
-    qDebug() << val;
-    QJsonDocument d = QJsonDocument::fromJson(val.toUtf8());
-    QJsonObject sett2 = d.object();
-    QJsonValue value = sett2.value(QString("executable_path"));
-    QJsonObject item = value.toObject();
-    QJsonValue subobj = item["qt5"];
-    qDebug() << subobj.toString();
-    this->moduleDir = subobj.toString().toStdString();
 
-    file.setFileName(QString(":/jsons/menu.json"));
-    file.open(QIODevice::ReadOnly | QIODevice::Text);
-    val = file.readAll();
-    file.close();
-    qDebug() << val;
-    QJsonDocument d1 = QJsonDocument::fromJson(val.toUtf8());
-    QJsonObject sett21 = d1.object();
-    QJsonValue value1 = sett21.value(QString("menu"));
-    QJsonArray menu = value1.toArray();
-    qDebug() << menu;
-    for(int i=0;i<menu.size();i++)
+    //remove comments from json file
+    QFile read_menu(QString::fromStdString(this->modulesFile));
+    QFile write_menu(QString::fromStdString(directivesHome + "/etc/menu_new.json"));
+
+    write_menu.open(QIODevice::WriteOnly | QIODevice::Text);
+    read_menu.open(QIODevice::ReadOnly | QIODevice::Text);
+
+    QTextStream out(&write_menu);
+    QTextStream in(&read_menu);
+        while(!in.atEnd()) {
+            QString line = in.readLine();
+            string str = line.toStdString();
+            cout << str << endl;
+            if (str.find("#") != string::npos) {
+                str = str.substr(0, str.find("#"));
+               
+            }
+             out << QString::fromStdString(str) << endl;
+        }
+  
+
+    read_menu.close();
+    write_menu.close();
+    read_menu.remove();
+
+    //rename the newly created json file
+    string dir_name = directivesHome + "/etc";
+    QDir dir(QString::fromStdString(dir_name));
+    dir.rename("menu_new.json", "menu.json");
+
+    
+    directivesHome += "/../..";
+    cout << "directivesHome: " << directivesHome << endl;
+    this->moduleDir = directivesHome + "/bin";
+    this->appConfig = directivesHome + "/appconfig.json";
+    json modules = json::parse_file(this->modulesFile);
+    json module_menus = modules["menu"].as<json::array>();
+    for(size_t i=0;i<module_menus.size();i++)
     {
-        QJsonValue lected_menu = menu[i].toObject().value(QString("modules"));
-        qDebug() << lected_menu;
-        QJsonArray selected_menu = lected_menu.toArray();
-        qDebug() << selected_menu;
-        for(int j=0;j<selected_menu.size();j++)
+        json menu_modules = module_menus[i]["modules"].as<json::array>();
+        for(size_t j=0;j<menu_modules.size();j++)
         {
-            QJsonValue id = selected_menu[j].toObject().value(QString("id"));
-            QJsonValue name = selected_menu[j].toObject().value(QString("label"));
             module new_module;
-            new_module.id = id.toString().toStdString();
-            new_module.name = name.toString().toStdString();
+            new_module.id = menu_modules[j]["id"].as<std::string>();
+            new_module.name = menu_modules[j]["label"].as<std::string>();
             genapp_mod[new_module.name] = new_module;
             genapp_modules.push_back(new_module);
-            qDebug() << "module" << QString::fromStdString(new_module.name);
         }
     }
-//    qDebug() << subobj.toString();
-//    this->moduleDir = subobj.toString().toStdString();
-
-
-    //    qDebug() << "1";
-    //    json directives_json = json::parse_file(file);
-    //    qDebug() << "2";
-    //    json executable_path = directives_json["executable_path"];
-    //    this->moduleDir = executable_path["qt5"].as<std::string>();
-
-    //    //modules
-    
-    //    json modules = json::parse_file(this->modulesFile);
-    //    json module_menus = modules["menu"].as<json::array>();
-    //    for(size_t i=0;i<module_menus.size();i++)
-    //    {
-    //        json menu_modules = module_menus[i]["modules"].as<json::array>();
-    //        for(size_t j=0;j<menu_modules.size();j++)
-    //        {
-    //            module new_module;
-    //            new_module.id = menu_modules[j]["id"].as<std::string>();
-    //            new_module.name = menu_modules[j]["label"].as<std::string>();
-    //            genapp_mod[new_module.name] = new_module;
-    //            genapp_modules.push_back(new_module);
-    //            qDebug() << "module" << QString::fromStdString(new_module.name);
-    //        }
-    //    }
     
 }
 
+typedef struct {
+        gchar *airavata_server, *app_catalog_server;
+        gint airavata_port, app_catalog_port, airavata_timeout;
+} Settings;
 
 void Register::readConfigFile(char* cfgfile, string& airavata_server, int& airavata_port, int& airavata_timeout) {
 
-    QFile file;
-    file.setFileName(":/jsons/appconfig.json");
-    file.open(QIODevice::ReadOnly | QIODevice::Text);
-    QString val;
-    val = file.readAll();
-    file.close();
-    qDebug() << val;
-    QJsonDocument d1 = QJsonDocument::fromJson(val.toUtf8());
-    QJsonObject sett21 = d1.object();
-    QJsonValue value1 = sett21.value(QString("hostip"));
-    airavata_server = value1.toString().toStdString();
-    QJsonValue value2 = sett21.value(QString("hostport"));
-    airavata_port = value2.toInt();
-    QJsonValue value3 = sett21.value(QString("hosttimeout"));
-    airavata_timeout = value3.toInt();
-    qDebug() << QString::fromStdString(airavata_server);
-    qDebug() << airavata_port;
-    qDebug() << airavata_timeout;
-//    airavata_server = config_json["hostip"].as<std::string>();
-//    airavata_port = config_json["hostport"].as<int>();
-//    airavata_timeout = config_json["hosttimeout"].as<int>();
+        json config_json = json::parse_file(this->appConfig);
+        json resources_json = config_json["resources"];
+        json airavata_json = resources_json["airavata"];
+        json properties_json = airavata_json["properties"];
+    
+        airavata_server = properties_json["server"].as<std::string>();
+        airavata_port = properties_json["port"].as<int>();
+        airavata_timeout = properties_json["timeout"].as<int>();
+
 }
 
 void Register::registerAll()
 {  
     
-    int airavata_port, airavata_timeout;
-    string airavata_server="";
-    char* cfgfile = "./airavata-client-properties.ini";;
-    readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);
-    airavata_server.erase(0,1);
-    airavata_server.erase(airavata_server.length()-1,1);
-    boost::shared_ptr<TSocket> socket(new TSocket(airavata_server, airavata_port));
-    socket->setSendTimeout(airavata_timeout);
-    boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
-    boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
-    airavataClient = new AiravataClient(protocol);
-
-    qDebug() << "registerAll";
-    transport->open();
-    registerGateway();
-    registerLocalhost();
-    registerGatewayProfile();
-    registerApplicationModules();
-    registerApplicationDeployments();
-    registerApplicationInterfaces();
-    transport->close();
+        int airavata_port, airavata_timeout;
+        string airavata_server="";
+        char* cfgfile = "./airavata-client-properties.ini";
+        readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);  
+        cout << "server-" << airavata_server << endl;            
+        boost::shared_ptr<TSocket> socket(new TSocket(airavata_server, airavata_port));
+        socket->setSendTimeout(airavata_timeout);
+        boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));    
+        boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
+        airavataClient = new AiravataClient(protocol);
+        
+        transport->open();
+        registerGateway();
+        registerLocalhost();
+        registerGatewayProfile();
+        registerApplicationModules();
+        registerApplicationDeployments();
+        registerApplicationInterfaces();
+        transport->close();
 }
 
 void Register::registerGateway() 
 {
     try
     {
-        qDebug() << "#### Registering Gateway ####";
+        cout << "registerGateway" << endl;
         Gateway gateway;
-        gateway.__set_gatewayName("Sample");
-        gateway.__set_gatewayId("sample");
+        gateway.__set_gatewayName("PHP Reference Gateway");
+        gateway.__set_gatewayId("php_reference_gateway");
         airavataClient->addGateway(this->gatewayId,gateway);
-        qDebug() << "Gateway registered, id: " << QString::fromStdString(this->gatewayId);
+        cout << "Gateway registered, id: " << this->gatewayId << endl;
     }
     catch(TException e)
     {
-        qDebug() << QString::fromStdString(e.what());
+        cout << e.what() << endl;
     }
 }
 
@@ -208,61 +158,39 @@ void Register::registerLocalhost()
 {
     try
     {
-        qDebug() << "\n #### Registering Localhost Computational Resources ####";
+        cout << "\n #### Registering Localhost Computational Resources" << endl;
         string hostname="localhost";
         string hostDesc="LocalHost";
-//        vector<string> ipAddresses;
-//        ipAddresses.push_back("192.168.1.106");
-        //        vector<string> hostAliases;
+        vector<string> ipAddresses;
+        vector<string> hostAliases;
 
         ComputeResourceDescription host;
         host.__set_hostName(hostname);
         host.__set_resourceDescription(hostDesc);
-//        host.__set_ipAddresses(ipAddresses);
-        //host.__set_hostAliases(hostAliases);
-        // host.__set_computeResourceId("localhost_ad82d657-d0c2-4c91-87fc-7bee3cbd8284");
         
-        // int airavata_port, airavata_timeout;
-        // string airavata_server="";
-        // char* cfgfile = "./airavata-client-properties.ini";;
-        // readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);
-        // airavata_server.erase(0,1);
-        // airavata_server.erase(airavata_server.length()-1,1);
-        // boost::shared_ptr<TSocket> socket(new TSocket(airavata_server, airavata_port));
-        // socket->setSendTimeout(airavata_timeout);
-        // boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
-        // boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
-        // airavataClient = new AiravataClient(protocol);
-        // transport->open();
         airavataClient->registerComputeResource(this->localhostId,host);
-        // transport->close();
-
-        qDebug() << "localhostId:" << QString::fromStdString(this->localhostId);
+        cout << "localhostId:" << this->localhostId << endl;
         ResourceJobManager resourceJobManager;
         map<JobManagerCommand::type, std::string> commandmap;
-        // JobManagerCommand::type jobManagerCommandType = JobManagerCommandType::SUBMISSION;
-        // commandmap[JobManagerCommand::SUBMISSION]="addLocalSubmissionDetails";
         resourceJobManager.__set_resourceJobManagerType(ResourceJobManagerType::FORK);
         resourceJobManager.__set_pushMonitoringEndpoint("");
         resourceJobManager.__set_jobManagerBinPath("");
         resourceJobManager.__set_jobManagerCommands(commandmap);
-
+    
 
         LOCALSubmission localSubmission;
         localSubmission.__set_resourceJobManager(resourceJobManager);
 
         string submission = "";
         
-        // transport->open();
         airavataClient->addLocalSubmissionDetails(submission,this->localhostId,1,localSubmission);
-        // transport->close();
 
-        qDebug() << "submission:" << QString::fromStdString(submission);
-        qDebug() << "Localhost Resource Id is " << QString::fromStdString(this->localhostId);
+        cout << "submission:" << submission << endl;
+        cout << "Localhost Resource Id is " << this->localhostId << endl;     
     }
     catch(TException& e)
     {
-        qDebug() << QString::fromStdString(e.what());
+        cout << e.what() << endl;
     }
 }
 
@@ -271,7 +199,7 @@ void Register::registerGatewayProfile()
     try
     {
         DataMovementProtocol::type dataMovementProtocol;
-        string scratchlocation = this->moduleDir + "/../tmp/qt5";
+        string scratchlocation = this->moduleDir + "/../tmp/qt5"; 
         
         char* cLocation = new char[scratchlocation.length()+ 1];
         strcpy(cLocation,scratchlocation.c_str());
@@ -280,19 +208,21 @@ void Register::registerGatewayProfile()
         int err = stat(cLocation, &info);
         if(err!=-1 && S_ISDIR(info.st_mode))
             scratchlocation = this->moduleDir + "/../tmp/qt5";
-        else
-            scratchlocation = this->moduleDir + "/..";
-
+        else{
+            //scratchlocation = this->moduleDir + "/..";
+            cout << "Output directory doesn't exist..check \"docroot\" in directives.json" << endl;
+            exit(1);
+        }
         JobSubmissionProtocol::type jobSubmissionProtocol;
         string preferredBatchQueue;
         bool overridebyAiravata = false;
         string allocationProjectNumber = "Sample";
         string computeResourceId = this->localhostId;
-        qDebug() << "ComputeResourceId:" << QString::fromStdString(computeResourceId);
+        cout << "ComputeResourceId:" << computeResourceId << endl;
         ComputeResourcePreference localhostResourcePreference;
         localhostResourcePreference.__set_computeResourceId(computeResourceId);
         localhostResourcePreference.__set_allocationProjectNumber(allocationProjectNumber);
-        localhostResourcePreference.__set_overridebyAiravata(overridebyAiravata);
+        localhostResourcePreference.__set_overridebyAiravata(overridebyAiravata); 
         localhostResourcePreference.__set_preferredBatchQueue(preferredBatchQueue);
         localhostResourcePreference.__set_preferredJobSubmissionProtocol(jobSubmissionProtocol);
         localhostResourcePreference.__set_preferredDataMovementProtocol(dataMovementProtocol);
@@ -305,23 +235,22 @@ void Register::registerGatewayProfile()
         gatewayResourceProfile.__set_computeResourcePreferences(crpVector);
         string _registerGatewayResourceProfile="";
         airavataClient->registerGatewayResourceProfile(_registerGatewayResourceProfile,gatewayResourceProfile);
-        qDebug() << "gateway profile registered:" << QString::fromStdString(_registerGatewayResourceProfile);
+        cout << "gateway profile registered:" << _registerGatewayResourceProfile << endl;
         
     }
     catch(TException e)
     {
-        qDebug() << QString::fromStdString(e.what());
+        cout << e.what() << endl;
     }
 }
 
 void Register::registerApplicationModules() 
 {
     try
-    {
-        for(std::vector<module>::iterator it = genapp_modules.begin(); it != genapp_modules.end(); it++)
+    {   
+        for(std::vector<module>::iterator it = genapp_modules.begin(); it != genapp_modules.end(); it++) 
         {
             string moduleName = it->name;
-            //            moduleName = this->moduleDir + moduleName;
             string appModuleVersion = "1.0";
             string appModuleDescription = moduleName+" application description";
             ApplicationModule appModule;
@@ -329,12 +258,12 @@ void Register::registerApplicationModules()
             appModule.__set_appModuleVersion(appModuleVersion);
             appModule.__set_appModuleDescription(appModuleDescription);
             airavataClient->registerApplicationModule(it->moduleId,this->gatewayId,appModule);
-            qDebug() << "module " << QString::fromStdString(moduleName) << "registered, id=" << QString::fromStdString(it->moduleId);
+
         }
     }
     catch(TException& e)
     {
-        qDebug() << QString::fromStdString(e.what());
+        cout << e.what() << endl;
     }
 }
 
@@ -342,16 +271,14 @@ void Register::registerApplicationDeployments()
 {
     try
     {
-        qDebug() << "#### Registering Genapp Modules on Localhost ####";
-
-        for(std::vector<module>::iterator it = genapp_modules.begin(); it != genapp_modules.end(); it++)
+        for(std::vector<module>::iterator it = genapp_modules.begin(); it != genapp_modules.end(); it++) 
         {
+            cout << "#### Registering Genapp Modules on Localhost ####" << endl;
             string moduleName = it->name;
             string moduleId = it->moduleId;
             string moduleDeployId="";
             string computeResourceId = this->localhostId;
-            string executablePath = this->moduleDir + "/" +it->id;
-            qDebug() << "path->" << QString::fromStdString(executablePath);
+            string executablePath = moduleDir + "/" +it->id;
             ApplicationDeploymentDescription applicationDeploymentDescription;
             applicationDeploymentDescription.__set_appModuleId(moduleId);
             applicationDeploymentDescription.__set_computeHostId(computeResourceId);
@@ -359,7 +286,7 @@ void Register::registerApplicationDeployments()
             applicationDeploymentDescription.__set_parallelism(ApplicationParallelismType::SERIAL);
             applicationDeploymentDescription.__set_appDeploymentDescription(moduleName);
             airavataClient->registerApplicationDeployment(moduleDeployId,this->gatewayId,applicationDeploymentDescription);
-            qDebug() << "Successfully registered " << QString::fromStdString(moduleName) << " application on localhost. Id= " << QString::fromStdString(moduleDeployId);
+            cout << "Successfully registered " << moduleName << " application on localhost. Id= " << moduleDeployId << endl;
         }
     }
     catch(TException& e)
@@ -370,7 +297,7 @@ void Register::registerApplicationDeployments()
 
 void Register::registerApplicationInterfaces()
 {   
-    for(std::vector<module>::iterator it = genapp_modules.begin(); it != genapp_modules.end(); it++)
+    for(std::vector<module>::iterator it = genapp_modules.begin(); it != genapp_modules.end(); it++) 
     {
         string moduleName = it->name;
         string moduleId = it->moduleId;
@@ -384,7 +311,7 @@ void Register::registerApplicationInterface(string moduleName,string moduleId)
 {
     try
     {
-        qDebug() << "#### Registering " << QString::fromStdString(moduleName) << " Interface ####";
+        cout << "#### Registering " << moduleName << " Interface ####" << endl;
 
         vector<string> appModules;
         appModules.push_back(moduleId);
@@ -437,11 +364,11 @@ void Register::registerApplicationInterface(string moduleName,string moduleId)
 
         airavataClient->registerApplicationInterface(ModuleInterfaceId,this->gatewayId,applicationInterfaceDescription);
         genapp_mod[moduleName].interfaceId = ModuleInterfaceId;
-        qDebug() << QString::fromStdString(moduleName) << " Module Interface Id: " << QString::fromStdString(genapp_mod[moduleName].interfaceId);
+        cout << moduleName << " Module Interface Id: " << genapp_mod[moduleName].interfaceId  << endl;
     }
     catch(TException& e)
     {
-        qDebug() << QString::fromStdString(e.what());
+        cout << e.what() << endl;
     }
 }
 
@@ -449,19 +376,16 @@ void Register::registerMain(Register* registerGenapp)
 {
     try
     {
-        qDebug() << "register.cpp" ;
-        registerGenapp->init();
-        qDebug() << "registerInit";
+        //registerGenapp->init();
         registerGenapp->registerAll();
-        qDebug() << "registerALl";
     }
     catch(AiravataClientException& e1)
     {
-        qDebug() << "Cannot connect to server-" << QString::fromStdString(e1.what());
+        std::cerr<<"Cannot connect to server-"<< e1.what() <<endl;
     }
     catch(TException& e2)
     {
-        qDebug() << QString::fromStdString(e2.what());
+        cerr << e2.what() << endl;
     }
 }
 
@@ -480,7 +404,7 @@ string Register::getInterfaceId(string moduleName)
 
 string Register::getComputeResourceId()
 {
-    qDebug() << "ComputeResourceId: " << QString::fromStdString(this->localhostId);
+    cout << "ComputeResourceId: " << this->localhostId << endl;
     return this->localhostId;
 }
 
@@ -498,37 +422,9 @@ Register* Register::getInstance()
     }
 }
 
-typedef struct {
-    gchar *airavata_server, *app_catalog_server;
-    gint airavata_port, app_catalog_port, airavata_timeout;
-} Settings;
+
 
 string gatewayId;
-
-void readConfigFile(char* cfgfile, string& airavata_server, int& airavata_port, int& airavata_timeout) {
-
-    airavata_server="'192.168.1.106'";
-    airavata_port = 8930;
-    airavata_timeout = 5000;
-
-}
-
-AiravataClient createAiravataClient()
-{
-    int airavata_port, airavata_timeout;
-    string airavata_server;
-    char* cfgfile;
-    cfgfile = "./airavata-client-properties.ini";
-    readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);
-    airavata_server.erase(0,1);
-    airavata_server.erase(airavata_server.length()-1,1);
-    boost::shared_ptr<TSocket> socket(new TSocket(airavata_server, airavata_port));
-    socket->setSendTimeout(airavata_timeout);
-    boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
-    boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
-    AiravataClient airavataClient(protocol);
-    return airavataClient;
-}
 
 string createProject(char* owner, char* projectName)
 { 
@@ -536,24 +432,21 @@ string createProject(char* owner, char* projectName)
     string airavata_server;
     char* cfgfile;
     cfgfile = "./airavata-client-properties.ini";
-    readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);
-    airavata_server.erase(0,1);
-    airavata_server.erase(airavata_server.length()-1,1);
+    Register* register_= Register::getInstance();
+    register_->readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);  
     boost::shared_ptr<TSocket> socket(new TSocket(airavata_server, airavata_port));
     socket->setSendTimeout(airavata_timeout);
-    boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
+    boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));    
     boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
     AiravataClient airavataClient(protocol);
     transport->open();
-    // AiravataClient airavataClient = createAiravataClient();
-    apache::airavata::model::workspace::Project project;
+    apache::airavata::model::workspace::Project project;                
     project.owner=owner;
     project.name=projectName;
     string _return;
-    Register* register_= Register::getInstance();
     gatewayId = register_->getGatewayId();
-    qDebug() << "Gateway Id:" << QString::fromStdString(gatewayId);
-    airavataClient.createProject(_return,gatewayId,project);
+    cout << "Gateway Id:" << gatewayId << endl;
+    airavataClient.createProject(_return,gatewayId,project);                
     transport->close();
     return _return;
 }
@@ -564,16 +457,14 @@ string createExperiment(char* usrName, char* expName, char* projId, char* execId
     string airavata_server;
     char* cfgfile;
     cfgfile = "./airavata-client-properties.ini";
-    readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);
-    airavata_server.erase(0,1);
-    airavata_server.erase(airavata_server.length()-1,1);
+    Register* register_= Register::getInstance();   
+    register_->readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);  
     boost::shared_ptr<TSocket> socket(new TSocket(airavata_server, airavata_port));
     socket->setSendTimeout(airavata_timeout);
-    boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
+    boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));    
     boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
     AiravataClient airavataClient(protocol);
     transport->open();
-    Register* register_= Register::getInstance();
     ComputationalResourceScheduling cmRST;
     cmRST.__set_resourceHostId(register_->getComputeResourceId());
     cmRST.__set_computationalProjectAccount(usrName);
@@ -593,15 +484,15 @@ string createExperiment(char* usrName, char* expName, char* projId, char* execId
 
 
     
-    char* appId = execId;
+    char* appId = execId;        
 
-
+     
     InputDataObjectType input;
     input.__set_name("input");
     input.__set_value(inp);
     input.__set_type(DataType::STRING);
     std::vector<InputDataObjectType> exInputs;
-    exInputs.push_back(input);
+    exInputs.push_back(input);              
     OutputDataObjectType output;
     output.__set_name("output");
     output.__set_value("");
@@ -622,7 +513,7 @@ string createExperiment(char* usrName, char* expName, char* projId, char* execId
     experiment.__set_userConfigurationData(userConfigurationData);
     experiment.__set_experimentInputs(exInputs);
     experiment.__set_experimentOutputs(exOutputs);
-
+              
     string _return = "";
     
     airavataClient.createExperiment(_return, gatewayId, experiment);
@@ -633,40 +524,40 @@ string createExperiment(char* usrName, char* expName, char* projId, char* execId
 void launchExperiment(char* expId)
 {
     try {
-        int airavata_port, airavata_timeout;
-        string airavata_server;
-        char* cfgfile;
-        cfgfile = "./airavata-client-properties.ini";
-        readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);
-        airavata_server.erase(0,1);
-        airavata_server.erase(airavata_server.length()-1,1);
-        boost::shared_ptr<TSocket> socket(new TSocket(airavata_server, airavata_port));
-        socket->setSendTimeout(airavata_timeout);
-        boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
-        boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
-        AiravataClient airavataClient(protocol);
-        transport->open();
-        string tokenId = "-0bbb-403b-a88a-42b6dbe198e9";
-        airavataClient.launchExperiment(expId, "airavataToken");
-        qDebug() << "launched client experiment";
-        transport->close();
-    } catch (ExperimentNotFoundException e) {
-        qDebug() << "Error occured while launching the experiment..." << QString::fromStdString(e.what());
-        throw new ExperimentNotFoundException(e);
-    } catch (AiravataSystemException e) {
-        qDebug() << "Error occured while launching the experiment..." << QString::fromStdString(e.what());
-        throw new AiravataSystemException(e);
-    } catch (InvalidRequestException e) {
-        qDebug() << "Error occured while launching the experiment..." << QString::fromStdString(e.what());
-        throw new InvalidRequestException(e);
-    } catch (AiravataClientException e) {
-        qDebug() << "Error occured while launching the experiment..." << QString::fromStdString(e.what());
-        throw new AiravataClientException(e);
-    } catch (TException e) {
-        qDebug() << "Error occured while launching the experiment..." << QString::fromStdString(e.what());
-        throw new TException(e);
-    }
-
+            int airavata_port, airavata_timeout;
+            string airavata_server;
+            char* cfgfile;
+            cfgfile = "./airavata-client-properties.ini";
+            Register* register_= Register::getInstance();   
+            register_->readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);  
+            boost::shared_ptr<TSocket> socket(new TSocket(airavata_server, airavata_port));
+            socket->setSendTimeout(airavata_timeout);
+            boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));    
+            boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
+            AiravataClient airavataClient(protocol);
+            transport->open();              
+            string tokenId = "-0bbb-403b-a88a-42b6dbe198e9";
+            airavataClient.launchExperiment(expId, "airavataToken");
+            qDebug() << "launched client experiment";
+            transport->close();             
+        } catch (ExperimentNotFoundException e) {
+            cout << "Error occured while launching the experiment..." << e.what() << endl;
+            throw new ExperimentNotFoundException(e);
+        } catch (AiravataSystemException e) {
+            cout << "Error occured while launching the experiment..." << e.what() << endl;
+            throw new AiravataSystemException(e);
+        } catch (InvalidRequestException e) {
+            cout << "Error occured while launching the experiment..." << e.what() << endl;
+            throw new InvalidRequestException(e);
+        } catch (AiravataClientException e) {
+            cout << "Error occured while launching the experiment..." << e.what() << endl;
+            throw new AiravataClientException(e);
+        } catch (TException e) {
+            cout << "Error occured while launching the experiment..." << e.what() << endl;
+            throw new TException(e);
+        }
+    // airavataclient.launchExperiment(expId, "airavataToken");
+    // transport->close();             
 }
 
 int getExperimentStatus(char* expId)
@@ -675,20 +566,19 @@ int getExperimentStatus(char* expId)
     string airavata_server;
     char* cfgfile;
     cfgfile = "./airavata-client-properties.ini";
-    readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);
-    airavata_server.erase(0,1);
-    airavata_server.erase(airavata_server.length()-1,1);
+    Register* register_= Register::getInstance();   
+    register_->readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);  
     boost::shared_ptr<TSocket> socket(new TSocket(airavata_server, airavata_port));
     socket->setSendTimeout(airavata_timeout);
-    boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
+    boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));    
     boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
     AiravataClient airavataClient(protocol);
-    transport->open();
-    ExperimentStatus _return;
+    transport->open();          
+    ExperimentStatus _return;       
     airavataClient.getExperimentStatus(_return, expId);
     transport->close();
     return _return.experimentState;
-
+                
 }
 
 string getExperimentOutput(char* expId)
@@ -697,21 +587,18 @@ string getExperimentOutput(char* expId)
     string airavata_server;
     char* cfgfile;
     cfgfile = "./airavata-client-properties.ini";
-    readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);
-    airavata_server.erase(0,1);
-    airavata_server.erase(airavata_server.length()-1,1);
+    Register* register_= Register::getInstance();   
+    register_->readConfigFile(cfgfile, airavata_server, airavata_port, airavata_timeout);  
     boost::shared_ptr<TSocket> socket(new TSocket(airavata_server, airavata_port));
     socket->setSendTimeout(airavata_timeout);
-    boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
+    boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));    
     boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
     AiravataClient airavataClient(protocol);
-    transport->open();
-    // AiravataClient airavataClient = createAiravataClient();
+    transport->open();          
     std::vector<OutputDataObjectType> _return;
     string texpId(expId);
     airavataClient.getExperimentOutputs(_return, texpId);
     transport->close();
     return _return[0].value;
-
+                
 }
-
