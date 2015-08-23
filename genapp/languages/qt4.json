@@ -79,6 +79,11 @@
                     "frequency"  : "once",
                     "output"     : "etc/menu.json",
                     "inputs"     : [ { "__basedir__/menu.json"   : "once" } ]
+                   },
+                   {
+                    "frequency"  : "once",
+                    "output"     : "etc/directives.json",
+                    "inputs"     : [ { "__basedir__/directives.json"   : "once" } ]
                    }
                   ]
 }

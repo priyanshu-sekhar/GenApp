@@ -39,10 +39,8 @@ void Register::init()
     
     string directivesHome = get_current_dir_name();
     this->modulesFile = directivesHome + "/etc/menu.json";
-
+    this->directivesFile = directivesHome + "/etc/directives.json";
     
-
-
     //remove comments from json file
     QFile read_menu(QString::fromStdString(this->modulesFile));
     QFile write_menu(QString::fromStdString(directivesHome + "/etc/menu_new.json"));
@@ -55,7 +53,6 @@ void Register::init()
         while(!in.atEnd()) {
             QString line = in.readLine();
             string str = line.toStdString();
-            cout << str << endl;
             if (str.find("#") != string::npos) {
                 str = str.substr(0, str.find("#"));
                
@@ -73,9 +70,13 @@ void Register::init()
     QDir dir(QString::fromStdString(dir_name));
     dir.rename("menu_new.json", "menu.json");
 
-    
     directivesHome += "/../..";
-    cout << "directivesHome: " << directivesHome << endl;
+    
+    //directive copy
+    json directives_json = json::parse_file(this->directivesFile);
+    json executable_path = directives_json["docroot"];
+    this->outputDir = executable_path["qt5"].as<std::string>();
+
     this->moduleDir = directivesHome + "/bin";
     this->appConfig = directivesHome + "/appconfig.json";
     json modules = json::parse_file(this->modulesFile);
@@ -199,7 +200,7 @@ void Register::registerGatewayProfile()
     try
     {
         DataMovementProtocol::type dataMovementProtocol;
-        string scratchlocation = this->moduleDir + "/../tmp/qt5"; 
+        string scratchlocation = this->outputDir; 
         
         char* cLocation = new char[scratchlocation.length()+ 1];
         strcpy(cLocation,scratchlocation.c_str());
@@ -207,10 +208,9 @@ void Register::registerGatewayProfile()
         struct stat info;
         int err = stat(cLocation, &info);
         if(err!=-1 && S_ISDIR(info.st_mode))
-            scratchlocation = this->moduleDir + "/../tmp/qt5";
+            scratchlocation = this->outputDir;
         else{
-            //scratchlocation = this->moduleDir + "/..";
-            cout << "Output directory doesn't exist..check \"docroot\" in directives.json" << endl;
+            cout << "Output directory- " << this->outputDir << " -doesn't exist..check \"docroot\" in directives.json" << endl;
             exit(1);
         }
         JobSubmissionProtocol::type jobSubmissionProtocol;

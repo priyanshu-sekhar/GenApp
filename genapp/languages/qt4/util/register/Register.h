@@ -80,6 +80,7 @@ private:
     string localhostId ;
     string moduleId;
     string moduleDir; 
+    string outputDir;
     string directivesFile;
     string modulesFile;
     string appConfig;
