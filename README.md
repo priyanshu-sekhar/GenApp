@@ -1,6 +1,6 @@
 **Update**
 -------------
-For using the updated appconfig and messaging services in qt, refer to the [develop](https://github.com/priyanshu-sekhar/GenApp/tree/develop) branch. <br/>
+For using messaging services in qt, refer to the [develop](https://github.com/priyanshu-sekhar/GenApp/tree/develop) branch. <br/>
 
 ##GENAPP AIRAVATA INTEGRATION
 ==========================
@@ -49,16 +49,15 @@ C++/Qt4
 1. Change to "psptest/output/qt4/psptest" <br/>
 2. Execute "qmake-qt4 -project" <br/>
 3. Edit "psptest.pro" to add the following lines: <br/>
-        ```
-	INCLUDEPATH += /usr/include/qwt-qt4 ../lib/ <br/>
-	LIBS += `pkg-config --libs glib-2.0` -L/usr/local/lib -lthrift -lqwt-qt4 
-	QMAKE_CXXFLAGS += -w -Wall -std=c++11 -Wno-write-strings -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H  `pkg-config --cflags glib-2.0`
-	```
-4. Start your local airavata server and make sure lines 55-56 of airavata.cpp have the correct host/port <br/>
-5. Execute *qmake-qt4* <br/>
-6. Execute *make* <br/>
-7. Change to "genapp-output/psptest/output/qt4" directory <br/>
-8. Run executable ./psptest/psptest <br/>
+   ```
+   INCLUDEPATH += /usr/include/qwt-qt4 ../lib/ <br/>
+   LIBS += `pkg-config --libs glib-2.0` -L/usr/local/lib -lthrift -lqwt-qt4 
+   QMAKE_CXXFLAGS += -w -Wall -std=c++11 -Wno-write-strings -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H  `pkg-config --cflags glib-2.0`
+   ```
+4. Execute *qmake-qt4* <br/>
+5. Execute *make* <br/>
+6. Change to "genapp-output/psptest/output/qt4" directory <br/>
+7. Run executable ./psptest/psptest <br/>
 
 C++/Qt5
 ---------------
@@ -73,9 +72,8 @@ C++/Qt5
    LIBS += `pkg-config --libs glib-2.0` -lthrift 
    QMAKE_CXXFLAGS += -w -Wall -std=c++11 -Wno-write-strings -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H  `pkg-config --cflags glib-2.0` 
    ```
-6. Start your local airavata server and make sure lines 55-56 of airavata.cpp have the correct host/port <br/>
-7. Execute "qmake -config release" to statically link the Qt libraries <br/>
-8. Execute "make" to build and create the executable. <br/>
-9. Execute "cd .." to goto "psptest/output/qt5" <br/>
-10. Run executable ./psptest/psptest <br/>
+6. Execute "qmake -config release" to statically link the Qt libraries <br/>
+7. Execute "make" to build and create the executable. <br/>
+8. Execute "cd .." to goto "psptest/output/qt5" <br/>
+9. Run executable ./psptest/psptest <br/>
 
