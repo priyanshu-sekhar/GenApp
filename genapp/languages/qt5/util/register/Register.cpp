@@ -44,9 +44,11 @@ void Register::init()
     //remove comments from json file
     QFile read_menu(QString::fromStdString(this->modulesFile));
     QFile write_menu(QString::fromStdString(directivesHome + "/etc/menu_new.json"));
+    
 
     write_menu.open(QIODevice::WriteOnly | QIODevice::Text);
     read_menu.open(QIODevice::ReadOnly | QIODevice::Text);
+    
 
     QTextStream out(&write_menu);
     QTextStream in(&read_menu);
@@ -65,10 +67,35 @@ void Register::init()
     write_menu.close();
     read_menu.remove();
 
+    QFile read_directives(QString::fromStdString(this->directivesFile));
+    QFile write_directives(QString::fromStdString(directivesHome + "/etc/directives_new.json"));
+   
+    write_directives.open(QIODevice::WriteOnly | QIODevice::Text);
+    read_directives.open(QIODevice::ReadOnly | QIODevice::Text);
+   
+    QTextStream outD(&write_directives);
+    QTextStream inD(&read_directives);
+        while(!inD.atEnd()) {
+            cout << "Inside while" << endl;
+            QString line = inD.readLine();
+            string str = line.toStdString();
+            cout << str << endl;
+            if (str.find("#") != string::npos) {
+                str = str.substr(0, str.find("#"));
+               
+            }
+             outD << QString::fromStdString(str) << endl;
+        }
+
+    read_directives.close();
+    write_directives.close();
+    read_directives.remove();
+
     //rename the newly created json file
     string dir_name = directivesHome + "/etc";
     QDir dir(QString::fromStdString(dir_name));
     dir.rename("menu_new.json", "menu.json");
+    dir.rename("directives_new.json", "directives.json");
 
     directivesHome += "/../..";
     
